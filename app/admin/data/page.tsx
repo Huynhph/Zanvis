@@ -1,3 +1,11 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '../../../lib/supabase/server';
-export default async function Data(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');return <main className="shell"><div className="card"><h1>Data management</h1><p className="muted">Signed in as {user.email}</p><input type="file" accept=".xlsx" /></div></main>}
+'use client';
+import { ChangeEvent, useState } from 'react';
+import * as XLSX from 'xlsx';
+
+type Preview={overview:number;regionalNew:number;regionalFtp:number;errors:string[];fileName:string};
+export default function Data(){
+ const [preview,setPreview]=useState<Preview|null>(null); const [busy,setBusy]=useState(false); const [message,setMessage]=useState('');
+ async function onFile(event:ChangeEvent<HTMLInputElement>){const file=event.target.files?.[0];if(!file)return;setMessage('');const data=await file.arrayBuffer();const book=XLSX.read(data,{type:'array'});const errors:string[]=[];const overview=book.Sheets['Overview'];const newRegions=book.Sheets['New customers by regions'];const ftp=book.Sheets['FTP by regions'];if(!overview)errors.push('Thiếu sheet Overview');if(!newRegions)errors.push('Thiếu sheet New customers by regions');if(!ftp)errors.push('Thiếu sheet FTP by regions');const rows=(sheet:XLSX.WorkSheet|undefined)=>sheet?Math.max(0,XLSX.utils.sheet_to_json(sheet,{header:1,defval:null}).length-2):0;setPreview({fileName:file.name,overview:rows(overview),regionalNew:rows(newRegions),regionalFtp:rows(ftp),errors});}
+ async function importFile(){if(!preview||preview.errors.length)return;setBusy(true);setMessage('Đang import…');const response=await fetch('/api/admin/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(preview)});const result=await response.json();setBusy(false);setMessage(response.ok?`Import thành công: ${result.message}`:`Import lỗi: ${result.error}`);}
+ return <main className="shell"><div className="card"><h1>Data management</h1><p className="muted">Upload và kiểm tra file Excel trước khi Replace dữ liệu.</p><input type="file" accept=".xlsx" onChange={onFile}/>{preview&&<div className="card"><h2>{preview.fileName}</h2><p>Overview: {preview.overview} dòng</p><p>New customers by regions: {preview.regionalNew} dòng</p><p>FTP by regions: {preview.regionalFtp} dòng</p>{preview.errors.length>0&&<div role="alert">{preview.errors.map(e=><p key={e}>{e}</p>)}</div>}<button className="button" disabled={busy||preview.errors.length>0} onClick={importFile}>{busy?'Đang import…':'Replace & Import'}</button></div>}{message&&<p role="status">{message}</p>}</div></main>;
+}

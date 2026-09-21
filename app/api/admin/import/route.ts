@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '../../../../lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+export async function POST(request:Request){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const admin=createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!);const {data:profile}=await admin.from('profiles').select('role,is_active').eq('id',user.id).maybeSingle();if(!profile?.is_active||profile.role!=='admin')return NextResponse.json({error:'Admin access required'},{status:403});const body=await request.json();if(!body.fileName||body.errors?.length)return NextResponse.json({error:'Invalid workbook preview'},{status:400});return NextResponse.json({message:'Preview accepted. Full row mapping will be added in the next step.'});}
