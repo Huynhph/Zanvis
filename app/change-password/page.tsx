@@ -1,0 +1,1 @@
+export default function ChangePassword(){return <main className="shell"><div className="card"><h1>Đổi mật khẩu</h1><p className="muted">First-login password change screen placeholder.</p></div></main>}

@@ -1,0 +1,1 @@
+export default function Data(){return <main className="shell"><div className="card"><h1>Data management</h1><p className="muted">Admin-only Excel upload placeholder.</p><input type="file" accept=".xlsx" /></div></main>}
